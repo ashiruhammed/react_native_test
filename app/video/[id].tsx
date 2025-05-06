@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { VideoPlayer } from '../../components/VideoPlayer';
 import { useVideoStore } from '../../store/videoStore';
 
 export default function VideoScreen() {
   const { id } = useLocalSearchParams();
-  const { videos, currentVideo, setCurrentVideo, updateVideoProgress } = useVideoStore();
+  const { videos, currentVideo, setCurrentVideo, updateVideoProgress, markVideoAsWatched } =
+    useVideoStore();
 
   useEffect(() => {
     const video = videos.find((v) => v.id === id);
@@ -26,6 +27,17 @@ export default function VideoScreen() {
 
   const handleTimeUpdate = (currentTime: number, duration: number) => {
     updateVideoProgress(currentVideo.id, currentTime, duration);
+  };
+
+  const handleMarkAsWatched = () => {
+    markVideoAsWatched(currentVideo.id);
+  };
+
+  const formatTime = (seconds?: number) => {
+    if (!seconds) return '00:00';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -56,16 +68,29 @@ export default function VideoScreen() {
             <View style={styles.statItem}>
               <Ionicons name="time-outline" size={16} color="#666" />
               <Text style={styles.statText}>
-                {currentVideo.duration ? Math.floor(currentVideo.duration / 60) : 0} min
+                {currentVideo.duration ? formatTime(currentVideo.duration) : '00:00'}
               </Text>
             </View>
-            {currentVideo.isWatched && (
-              <View style={styles.watchedContainer}>
-                <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                <Text style={styles.watchedText}>Watched</Text>
+            {currentVideo.currentTime && currentVideo.duration && (
+              <View style={styles.progressContainer}>
+                <Text style={styles.progressText}>
+                  {formatTime(currentVideo.currentTime)} / {formatTime(currentVideo.duration)}
+                </Text>
               </View>
             )}
           </View>
+          <TouchableOpacity
+            style={[styles.watchButton, currentVideo.isWatched && styles.watchedButton]}
+            onPress={handleMarkAsWatched}>
+            <Ionicons
+              name={currentVideo.isWatched ? 'checkmark-circle' : 'checkmark-circle-outline'}
+              size={20}
+              color="white"
+            />
+            <Text style={styles.watchButtonText}>
+              {currentVideo.isWatched ? 'Watched' : 'Mark as Watched'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -99,6 +124,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 16,
   },
   statItem: {
     flexDirection: 'row',
@@ -109,19 +135,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  watchedContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
+  progressContainer: {
+    backgroundColor: '#f0f0f0',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 4,
   },
-  watchedText: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: '#4CAF50',
-    fontWeight: '500',
+  progressText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  watchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  watchedButton: {
+    backgroundColor: '#2E7D32',
+  },
+  watchButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   errorText: {
     fontSize: 16,

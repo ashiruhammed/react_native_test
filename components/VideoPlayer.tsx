@@ -18,14 +18,27 @@ export function VideoPlayer({ videoUrl, onTimeUpdate, initialTime }: VideoPlayer
 
   useEffect(() => {
     if (onTimeUpdate) {
+      // Update progress every second
+      const interval = setInterval(() => {
+        const currentTime = player.currentTime;
+        const duration = player.duration;
+        if (duration > 0) {
+          onTimeUpdate(currentTime, duration);
+        }
+      }, 1000);
+
+      // Also listen for timeUpdate events for more frequent updates
       const subscription = player.addListener('timeUpdate', ({ currentTime }) => {
-        // Get duration from the player
         const duration = player.duration;
         if (duration > 0) {
           onTimeUpdate(currentTime, duration);
         }
       });
-      return () => subscription.remove();
+
+      return () => {
+        clearInterval(interval);
+        subscription.remove();
+      };
     }
   }, [player, onTimeUpdate]);
 
