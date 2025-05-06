@@ -1,13 +1,15 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
-import { VideoPlayer } from '~/components/VideoPlayer';
 import { Ionicons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { VideoPlayer } from '~/components/VideoPlayer';
+import { formatTime, getVideoProgress, saveVideoProgress } from '~/utils/videoProgress';
 
 const videos = [
   {
     id: '1',
     title: 'React Native Basics - Learn how to build amazing mobile apps',
-    thumbnail: 'https://placehold.co/300x200',
+    thumbnail: 'https://i.ytimg.com/vi/VozPNrt-LfE/maxresdefault.jpg',
     videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
     description:
       "In this comprehensive tutorial, you'll learn the fundamentals of React Native and how to build your first mobile application. We'll cover everything from setup to deployment.",
@@ -18,7 +20,7 @@ const videos = [
   {
     id: '2',
     title: 'Advanced Navigation - Master React Navigation in 2024',
-    thumbnail: 'https://placehold.co/300x200',
+    thumbnail: 'https://i.ytimg.com/vi/9XZEdCHZv4I/maxresdefault.jpg',
     videoUrl: 'https://www.w3schools.com/html/movie.mp4',
     description:
       'Take your React Native navigation skills to the next level with this in-depth guide to React Navigation. Learn about nested navigators, deep linking, and more.',
@@ -31,6 +33,31 @@ const videos = [
 export default function VideoScreen() {
   const { id } = useLocalSearchParams();
   const video = videos.find((v) => v.id === id);
+  const [progress, setProgress] = useState<{
+    currentTime: number;
+    duration: number;
+    isWatched: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    loadProgress();
+  }, []);
+
+  const loadProgress = async () => {
+    if (id) {
+      const videoProgress = await getVideoProgress(id as string);
+      setProgress(videoProgress);
+    }
+  };
+
+  const handleTimeUpdate = async (currentTime: number, duration: number) => {
+    if (id) {
+      const isWatched = currentTime / duration > 0.9; // Mark as watched if 90% completed
+      const newProgress = { currentTime, duration, isWatched };
+      setProgress(newProgress);
+      await saveVideoProgress(id as string, newProgress);
+    }
+  };
 
   if (!video) {
     return (
@@ -55,25 +82,30 @@ export default function VideoScreen() {
         }}
       />
       <ScrollView style={styles.container}>
-        <VideoPlayer videoUrl={video.videoUrl} />
+        <VideoPlayer
+          videoUrl={video.videoUrl}
+          onTimeUpdate={handleTimeUpdate}
+          initialTime={progress?.currentTime}
+        />
         <View style={styles.content}>
           <Text style={styles.title}>{video.title}</Text>
 
           <View style={styles.statsContainer}>
-            <Text style={styles.stats}>
-              {video.views} views • {video.uploadDate}
-            </Text>
+            {progress && (
+              <Text style={styles.stats}>
+                {formatTime(progress.currentTime)} / {formatTime(progress.duration)}
+                {progress.isWatched && <Text style={styles.watchedText}> • Watched</Text>}
+              </Text>
+            )}
             <View style={styles.actions}>
               <Pressable style={styles.actionButton}>
                 <Ionicons name="thumbs-up-outline" size={24} color="#666" />
-                <Text style={styles.actionText}>{video.likes}</Text>
               </Pressable>
               <Pressable style={styles.actionButton}>
                 <Ionicons name="thumbs-down-outline" size={24} color="#666" />
               </Pressable>
               <Pressable style={styles.actionButton}>
                 <Ionicons name="share-outline" size={24} color="#666" />
-                <Text style={styles.actionText}>Share</Text>
               </Pressable>
             </View>
           </View>
@@ -128,19 +160,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  watchedText: {
+    color: '#4CAF50',
+  },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginLeft: 16,
-  },
-  actionText: {
-    marginLeft: 4,
-    fontSize: 14,
-    color: '#666',
   },
   channelInfo: {
     paddingVertical: 16,

@@ -1,6 +1,8 @@
 import { StyleSheet, View, Text, Image, Pressable } from 'react-native';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
+import { getVideoProgress, formatTime } from '~/utils/videoProgress';
 
 interface VideoCardProps {
   id: string;
@@ -9,6 +11,21 @@ interface VideoCardProps {
 }
 
 export function VideoCard({ id, title, thumbnail }: VideoCardProps) {
+  const [progress, setProgress] = useState<{
+    currentTime: number;
+    duration: number;
+    isWatched: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    loadProgress();
+  }, []);
+
+  const loadProgress = async () => {
+    const videoProgress = await getVideoProgress(id);
+    setProgress(videoProgress);
+  };
+
   return (
     <Link href={`/video/${id}`} asChild>
       <Pressable style={styles.container}>
@@ -17,6 +34,23 @@ export function VideoCard({ id, title, thumbnail }: VideoCardProps) {
           <View style={styles.playButton}>
             <Ionicons name="play-circle" size={40} color="#fff" />
           </View>
+          {progress && progress.duration > 0 && (
+            <>
+              <View style={styles.progressContainer}>
+                <View
+                  style={[
+                    styles.progressBar,
+                    { width: `${(progress.currentTime / progress.duration) * 100}%` },
+                  ]}
+                />
+              </View>
+              <View style={styles.durationContainer}>
+                <Text style={styles.durationText}>
+                  {formatTime(progress.currentTime)} / {formatTime(progress.duration)}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
         <View style={styles.info}>
           <Text style={styles.title} numberOfLines={2}>
@@ -29,11 +63,12 @@ export function VideoCard({ id, title, thumbnail }: VideoCardProps) {
               </View>
               <Text style={styles.channelName}>React Native Channel</Text>
             </View>
-            <View style={styles.stats}>
-              <Text style={styles.statText}>1.2M views</Text>
-              <Text style={styles.statText}>•</Text>
-              <Text style={styles.statText}>2 days ago</Text>
-            </View>
+            {progress?.isWatched && (
+              <View style={styles.watchedContainer}>
+                <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                <Text style={styles.watchedText}>Watched</Text>
+              </View>
+            )}
           </View>
         </View>
       </Pressable>
@@ -71,6 +106,32 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 20,
   },
+  progressContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#ff0000',
+  },
+  durationContainer: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  durationText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
   info: {
     padding: 12,
   },
@@ -96,13 +157,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  stats: {
+  watchedContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  statText: {
+  watchedText: {
     fontSize: 12,
-    color: '#666',
+    color: '#4CAF50',
     marginLeft: 4,
+    fontWeight: '500',
   },
 });

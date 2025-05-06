@@ -7,13 +7,13 @@ const videos = [
   {
     id: '1',
     title: 'React Native Basics - Learn how to build amazing mobile apps',
-    thumbnail: 'https://placehold.co/300x200',
+    thumbnail: 'https://i.ytimg.com/vi/VozPNrt-LfE/maxresdefault.jpg',
     videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
   },
   {
     id: '2',
     title: 'Advanced Navigation - Master React Navigation in 2024',
-    thumbnail: 'https://placehold.co/300x200',
+    thumbnail: 'https://i.ytimg.com/vi/9XZEdCHZv4I/maxresdefault.jpg',
     videoUrl: 'https://www.w3schools.com/html/movie.mp4',
   },
 ];
