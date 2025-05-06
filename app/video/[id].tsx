@@ -1,77 +1,38 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { VideoPlayer } from '~/components/VideoPlayer';
-import { formatTime, getVideoProgress, saveVideoProgress } from '~/utils/videoProgress';
-
-const videos = [
-  {
-    id: '1',
-    title: 'React Native Basics - Learn how to build amazing mobile apps',
-    thumbnail: 'https://i.ytimg.com/vi/VozPNrt-LfE/maxresdefault.jpg',
-    videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
-    description:
-      "In this comprehensive tutorial, you'll learn the fundamentals of React Native and how to build your first mobile application. We'll cover everything from setup to deployment.",
-    views: '1.2M',
-    likes: '45K',
-    uploadDate: '2 days ago',
-  },
-  {
-    id: '2',
-    title: 'Advanced Navigation - Master React Navigation in 2024',
-    thumbnail: 'https://i.ytimg.com/vi/9XZEdCHZv4I/maxresdefault.jpg',
-    videoUrl: 'https://www.w3schools.com/html/movie.mp4',
-    description:
-      'Take your React Native navigation skills to the next level with this in-depth guide to React Navigation. Learn about nested navigators, deep linking, and more.',
-    views: '856K',
-    likes: '32K',
-    uploadDate: '1 week ago',
-  },
-];
+import { useEffect } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { VideoPlayer } from '../../components/VideoPlayer';
+import { useVideoStore } from '../../store/videoStore';
 
 export default function VideoScreen() {
   const { id } = useLocalSearchParams();
-  const video = videos.find((v) => v.id === id);
-  const [progress, setProgress] = useState<{
-    currentTime: number;
-    duration: number;
-    isWatched: boolean;
-  } | null>(null);
+  const { videos, currentVideo, setCurrentVideo, updateVideoProgress } = useVideoStore();
 
   useEffect(() => {
-    loadProgress();
-  }, []);
-
-  const loadProgress = async () => {
-    if (id) {
-      const videoProgress = await getVideoProgress(id as string);
-      setProgress(videoProgress);
+    const video = videos.find((v) => v.id === id);
+    if (video) {
+      setCurrentVideo(video);
     }
-  };
+  }, [id, videos]);
 
-  const handleTimeUpdate = async (currentTime: number, duration: number) => {
-    if (id) {
-      const isWatched = currentTime / duration > 0.9; // Mark as watched if 90% completed
-      const newProgress = { currentTime, duration, isWatched };
-      setProgress(newProgress);
-      await saveVideoProgress(id as string, newProgress);
-    }
-  };
-
-  if (!video) {
+  if (!currentVideo) {
     return (
       <View style={styles.container}>
-        <Text>Video not found</Text>
+        <Text style={styles.errorText}>Video not found</Text>
       </View>
     );
   }
 
+  const handleTimeUpdate = (currentTime: number, duration: number) => {
+    updateVideoProgress(currentVideo.id, currentTime, duration);
+  };
+
   return (
-    <>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
-          title: video.title,
+          title: currentVideo.title,
           headerStyle: {
             backgroundColor: '#1a1a1a',
           },
@@ -81,66 +42,52 @@ export default function VideoScreen() {
           },
         }}
       />
-      <ScrollView style={styles.container}>
-        <VideoPlayer
-          videoUrl={video.videoUrl}
-          onTimeUpdate={handleTimeUpdate}
-          initialTime={progress?.currentTime}
-        />
-        <View style={styles.content}>
-          <Text style={styles.title}>{video.title}</Text>
-
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.videoContainer}>
+          <VideoPlayer
+            videoUrl={currentVideo.videoUrl}
+            onTimeUpdate={handleTimeUpdate}
+            initialTime={currentVideo.currentTime}
+          />
+        </View>
+        <View style={styles.infoContainer}>
+          <Text style={styles.title}>{currentVideo.title}</Text>
           <View style={styles.statsContainer}>
-            {progress && (
-              <Text style={styles.stats}>
-                {formatTime(progress.currentTime)} / {formatTime(progress.duration)}
-                {progress.isWatched && <Text style={styles.watchedText}> • Watched</Text>}
+            <View style={styles.statItem}>
+              <Ionicons name="time-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                {currentVideo.duration ? Math.floor(currentVideo.duration / 60) : 0} min
               </Text>
+            </View>
+            {currentVideo.isWatched && (
+              <View style={styles.watchedContainer}>
+                <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                <Text style={styles.watchedText}>Watched</Text>
+              </View>
             )}
-            <View style={styles.actions}>
-              <Pressable style={styles.actionButton}>
-                <Ionicons name="thumbs-up-outline" size={24} color="#666" />
-              </Pressable>
-              <Pressable style={styles.actionButton}>
-                <Ionicons name="thumbs-down-outline" size={24} color="#666" />
-              </Pressable>
-              <Pressable style={styles.actionButton}>
-                <Ionicons name="share-outline" size={24} color="#666" />
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.channelInfo}>
-            <View style={styles.channelHeader}>
-              <View style={styles.channelAvatar}>
-                <Ionicons name="person-circle" size={40} color="#666" />
-              </View>
-              <View style={styles.channelDetails}>
-                <Text style={styles.channelName}>React Native Channel</Text>
-                <Text style={styles.subscriberCount}>1.5M subscribers</Text>
-              </View>
-              <Pressable style={styles.subscribeButton}>
-                <Text style={styles.subscribeText}>Subscribe</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.description}>
-            <Text style={styles.descriptionText}>{video.description}</Text>
           </View>
         </View>
       </ScrollView>
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
   },
-  content: {
+  scrollView: {
+    flex: 1,
+  },
+  videoContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#000',
+  },
+  infoContainer: {
     padding: 16,
+    backgroundColor: 'white',
   },
   title: {
     fontSize: 18,
@@ -150,66 +97,36 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    justifyContent: 'space-between',
   },
-  stats: {
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statText: {
+    marginLeft: 4,
     fontSize: 14,
     color: '#666',
+  },
+  watchedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   watchedText: {
+    marginLeft: 4,
+    fontSize: 12,
     color: '#4CAF50',
+    fontWeight: '500',
   },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionButton: {
-    marginLeft: 16,
-  },
-  channelInfo: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  channelHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  channelAvatar: {
-    marginRight: 12,
-  },
-  channelDetails: {
-    flex: 1,
-  },
-  channelName: {
+  errorText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
-  },
-  subscriberCount: {
-    fontSize: 14,
     color: '#666',
-  },
-  subscribeButton: {
-    backgroundColor: '#ff0000',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  subscribeText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  description: {
-    paddingTop: 16,
-  },
-  descriptionText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
