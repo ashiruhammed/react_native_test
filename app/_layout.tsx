@@ -1,24 +1,13 @@
+import { StatusBar } from 'react-native';
+import '../global.css';
 
-  import '../global.css';
-
-
-
-
-
-
-	import { Stack } from "expo-router";
-
-
+import { Stack } from 'expo-router';
 
 export default function Layout() {
-  
-  
-
-	return (
-		
-        
-            <Stack />
-        
-		
-	);
+  return (
+    <>
+      <StatusBar barStyle={'light-content'} />
+      <Stack />
+    </>
+  );
 }
