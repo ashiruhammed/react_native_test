@@ -1,17 +1,37 @@
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useVideoStore } from '../store/videoStore';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useVideoStore } from '../store/videoStore';
 
 type FilterType = 'all' | 'watched' | 'unwatched';
 
 export default function Home() {
-  const { videos, loadVideos, getFilteredVideos } = useVideoStore();
+  const { loadVideos, getFilteredVideos } = useVideoStore();
   const [filter, setFilter] = useState<FilterType>('all');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadVideos();
+    const initializeVideos = async () => {
+      try {
+        await loadVideos();
+      } catch (error) {
+        console.error('Error loading videos:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeVideos();
   }, []);
 
   const filteredVideos = getFilteredVideos(filter);
@@ -19,13 +39,25 @@ export default function Home() {
   const renderFilterButton = (filterType: FilterType, label: string) => (
     <TouchableOpacity
       style={[styles.filterButton, filter === filterType && styles.activeFilterButton]}
-      onPress={() => setFilter(filterType)}>
+      onPress={() => setFilter(filterType)}
+      disabled={isLoading}>
       <Text
         style={[styles.filterButtonText, filter === filterType && styles.activeFilterButtonText]}>
         {label}
       </Text>
     </TouchableOpacity>
   );
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+          <Text style={styles.loadingText}>Loading videos...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -59,6 +91,11 @@ export default function Home() {
           </Link>
         )}
         contentContainerStyle={styles.videoList}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No videos found</Text>
+          </View>
+        }
       />
     </SafeAreaView>
   );
@@ -68,6 +105,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
   },
   header: {
     padding: 16,
@@ -142,5 +189,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '500',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
   },
 });

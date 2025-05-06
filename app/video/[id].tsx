@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -26,6 +27,7 @@ export default function VideoScreen() {
   } = useVideoStore();
   const [commentText, setCommentText] = useState('');
   const [isAddingComment, setIsAddingComment] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const video = videos.find((v) => v.id === id);
@@ -42,31 +44,54 @@ export default function VideoScreen() {
     );
   }
 
-  const handleTimeUpdate = (currentTime: number, duration: number) => {
-    updateVideoProgress(currentVideo.id, currentTime, duration);
+  const handleTimeUpdate = async (currentTime: number, duration: number) => {
+    await updateVideoProgress(currentVideo.id, currentTime, duration);
   };
 
-  const handleMarkAsWatched = () => {
-    markVideoAsWatched(currentVideo.id);
+  const handleMarkAsWatched = async () => {
+    setIsLoading(true);
+    try {
+      await markVideoAsWatched(currentVideo.id);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to mark video as watched');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!commentText.trim()) {
       Alert.alert('Error', 'Please enter a comment');
       return;
     }
-    addComment(currentVideo.id, commentText.trim(), currentVideo.currentTime || 0);
-    setCommentText('');
-    setIsAddingComment(false);
+    setIsLoading(true);
+    try {
+      await addComment(currentVideo.id, commentText.trim(), currentVideo.currentTime || 0);
+      setCommentText('');
+      setIsAddingComment(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add comment');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDeleteComment = (commentId: string) => {
+  const handleDeleteComment = async (commentId: string) => {
     Alert.alert('Delete Comment', 'Are you sure you want to delete this comment?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => deleteComment(currentVideo.id, commentId),
+        onPress: async () => {
+          setIsLoading(true);
+          try {
+            await deleteComment(currentVideo.id, commentId);
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete comment');
+          } finally {
+            setIsLoading(false);
+          }
+        },
       },
     ]);
   };
@@ -120,15 +145,22 @@ export default function VideoScreen() {
           </View>
           <TouchableOpacity
             style={[styles.watchButton, currentVideo.isWatched && styles.watchedButton]}
-            onPress={handleMarkAsWatched}>
-            <Ionicons
-              name={currentVideo.isWatched ? 'checkmark-circle' : 'checkmark-circle-outline'}
-              size={20}
-              color="white"
-            />
-            <Text style={styles.watchButtonText}>
-              {currentVideo.isWatched ? 'Watched' : 'Mark as Watched'}
-            </Text>
+            onPress={handleMarkAsWatched}
+            disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator color="white" size="small" />
+            ) : (
+              <>
+                <Ionicons
+                  name={currentVideo.isWatched ? 'checkmark-circle' : 'checkmark-circle-outline'}
+                  size={20}
+                  color="white"
+                />
+                <Text style={styles.watchButtonText}>
+                  {currentVideo.isWatched ? 'Watched' : 'Mark as Watched'}
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <View style={styles.commentsSection}>
@@ -136,7 +168,8 @@ export default function VideoScreen() {
             {!isAddingComment ? (
               <TouchableOpacity
                 style={styles.addCommentButton}
-                onPress={() => setIsAddingComment(true)}>
+                onPress={() => setIsAddingComment(true)}
+                disabled={isLoading}>
                 <Ionicons name="add-circle-outline" size={20} color="#4CAF50" />
                 <Text style={styles.addCommentText}>Add Comment</Text>
               </TouchableOpacity>
@@ -148,6 +181,7 @@ export default function VideoScreen() {
                   onChangeText={setCommentText}
                   placeholder="Write your comment..."
                   multiline
+                  editable={!isLoading}
                 />
                 <View style={styles.commentInputButtons}>
                   <TouchableOpacity
@@ -155,11 +189,19 @@ export default function VideoScreen() {
                     onPress={() => {
                       setCommentText('');
                       setIsAddingComment(false);
-                    }}>
+                    }}
+                    disabled={isLoading}>
                     <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.submitButton} onPress={handleAddComment}>
-                    <Text style={styles.submitButtonText}>Submit</Text>
+                  <TouchableOpacity
+                    style={[styles.submitButton, isLoading && styles.disabledButton]}
+                    onPress={handleAddComment}
+                    disabled={isLoading}>
+                    {isLoading ? (
+                      <ActivityIndicator color="white" size="small" />
+                    ) : (
+                      <Text style={styles.submitButtonText}>Submit</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -171,7 +213,8 @@ export default function VideoScreen() {
                   <Text style={styles.commentTimestamp}>{formatTime(comment.timestamp)}</Text>
                   <TouchableOpacity
                     onPress={() => handleDeleteComment(comment.id)}
-                    style={styles.deleteButton}>
+                    style={styles.deleteButton}
+                    disabled={isLoading}>
                     <Ionicons name="trash-outline" size={16} color="#666" />
                   </TouchableOpacity>
                 </View>
@@ -307,6 +350,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
   submitButtonText: {
     color: 'white',
