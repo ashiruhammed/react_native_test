@@ -48,6 +48,11 @@ export default function Home() {
     </TouchableOpacity>
   );
 
+  const getProgressPercentage = (video: any) => {
+    if (!video.currentTime || !video.duration) return 0;
+    return (video.currentTime / video.duration) * 100;
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -81,6 +86,18 @@ export default function Home() {
                 <Text style={styles.videoTitle} numberOfLines={2}>
                   {item.title}
                 </Text>
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[styles.progressFill, { width: `${getProgressPercentage(item)}%` }]}
+                    />
+                  </View>
+                  {item.currentTime && item.duration && (
+                    <Text style={styles.progressText}>
+                      {Math.round(getProgressPercentage(item))}%
+                    </Text>
+                  )}
+                </View>
                 {item.isWatched && (
                   <View style={styles.watchedBadge}>
                     <Text style={styles.watchedText}>Watched</Text>
@@ -176,7 +193,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1a1a1a',
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  progressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 2,
+    marginRight: 8,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 2,
+  },
+  progressText: {
+    fontSize: 12,
+    color: '#666',
+    minWidth: 40,
+    textAlign: 'right',
   },
   watchedBadge: {
     backgroundColor: '#4CAF50',
