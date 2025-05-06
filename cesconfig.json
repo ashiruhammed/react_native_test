@@ -1,0 +1,40 @@
+{
+  "cesVersion": "2.18.0",
+  "projectName": "react_native_test",
+  "packages": [
+    {
+      "name": "expo-router",
+      "type": "navigation",
+      "options": {
+        "type": "stack"
+      }
+    },
+    {
+      "name": "nativewind",
+      "type": "styling"
+    },
+    {
+      "name": "zustand",
+      "type": "state-management"
+    }
+  ],
+  "flags": {
+    "noGit": false,
+    "noInstall": false,
+    "overwrite": false,
+    "importAlias": true,
+    "packageManager": "npm",
+    "eas": false,
+    "publish": false
+  },
+  "packageManager": {
+    "type": "npm",
+    "version": "10.8.2"
+  },
+  "os": {
+    "type": "Darwin",
+    "platform": "darwin",
+    "arch": "x64",
+    "kernelVersion": "22.6.0"
+  }
+}
